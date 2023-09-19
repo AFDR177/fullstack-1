@@ -1,4 +1,4 @@
-import { useState, Fragment } from "react";
+import { useState, Fragment, useEffect } from "react";
 
 import Title from "../../component/title";
 import Grid from "../../component/grid";
@@ -11,6 +11,7 @@ import PostItem from "../post-item";
 import { Alert, Skeleton, LOAD_STATUS } from "../../component/load";
 
 import { getDate } from "../../util/getdate";
+import { useWindowListeren } from "../../util/useWindowListeren";
 
 export default function Container() {
   const [status, setStatus] = useState(null);
@@ -50,12 +51,38 @@ export default function Container() {
     isEmpty: raw.list.length === 0,
   });
 
-  if (status === null) {
+  useEffect(() => {
     getData();
-  }
+    const intervalId = setInterval(() => getData(), 5000);
+
+    return () => {
+      clearInterval(intervalId);
+      alert(2);
+    };
+  }, []);
+
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  useWindowListeren("pointermove", (e) => {
+    setPosition({ x: e.clientX, y: e.clientY });
+  });
 
   return (
     <Grid>
+      <div
+        style={{
+          position: "absolute",
+          backgroundColor: "pink",
+          borderRadius: "50%",
+          opacity: 0.6,
+          transform: `translate(${position.x}px,${position.y}px)`,
+          pointerEvents: "none",
+          left: -20,
+          top: -20,
+          width: 40,
+          height: 40,
+        }}
+      ></div>
       <Box>
         <Grid>
           <Title>Home</Title>
