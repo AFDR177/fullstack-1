@@ -1,4 +1,12 @@
-import { useState, Fragment, useEffect } from "react";
+import {
+  useState,
+  Fragment,
+  useEffect,
+  useReducer,
+  lazy,
+  Suspense,
+  useCallback,
+} from "react";
 
 import Title from "../../component/title";
 import Grid from "../../component/grid";
@@ -6,20 +14,32 @@ import Box from "../../component/box";
 
 import PostCreate from "../post-create";
 
-import PostItem from "../post-item";
+// import PostItem from "../post-item";
 
 import { Alert, Skeleton, LOAD_STATUS } from "../../component/load";
 
 import { getDate } from "../../util/getdate";
 import { useWindowListeren } from "../../util/useWindowListeren";
+import {
+  REQUEST_ACTION_TYPE,
+  requestInitialState,
+  requestReducer,
+} from "../../util/request";
+
+const PostItem = lazy(() => import("../post-item"));
 
 export default function Container() {
-  const [status, setStatus] = useState(null);
-  const [message, setMessage] = useState("");
-  const [data, setData] = useState(null);
+  //ось тут отримую state та dispatch
+  const [state, dispatch] = useReducer(requestReducer, requestInitialState);
+  // const [status, setStatus] = useState(null);
+  // const [message, setMessage] = useState("");
+  // const [data, setData] = useState(null);
 
-  const getData = async () => {
-    setStatus(LOAD_STATUS.PROGRESS);
+  const getData = useCallback(async () => {
+    // було до уроку про useReducer
+    // setStatus(LOAD_STATUS.PROGRESS);
+    //стало після уроку про useReducer
+    dispatch({ type: REQUEST_ACTION_TYPE.PROGRESS });
 
     try {
       const res = await fetch("http://localhost:4000/post-list");
@@ -27,17 +47,40 @@ export default function Container() {
       const data = await res.json();
 
       if (res.ok) {
-        setData(convertData(data));
-        setStatus(LOAD_STATUS.SUCCESS);
+        // було до уроку про useReducer
+        // setData(convertData(data));
+        // setStatus(LOAD_STATUS.SUCCESS);
+
+        //стало після уроку про useReducer
+        dispatch({
+          type: REQUEST_ACTION_TYPE.SUCCESS,
+          payload: convertData(data),
+        });
       } else {
-        setMessage(data.message);
-        setStatus(LOAD_STATUS.ERROR);
+        // було до уроку про useReducer
+        // setMessage(data.message);
+        // setStatus(LOAD_STATUS.ERROR);
+
+        //стало після уроку про useReducer
+        dispatch({
+          type: REQUEST_ACTION_TYPE.ERROR,
+          payload: data.message,
+        });
       }
     } catch (err) {
-      setMessage(err.message);
-      setStatus(LOAD_STATUS.ERROR);
+      // було до уроку про useReducer
+
+      // setMessage(err.message);
+      // setStatus(LOAD_STATUS.ERROR);
+
+      //стало після уроку про useReducer
+
+      dispatch({
+        type: REQUEST_ACTION_TYPE.ERROR,
+        payload: err.message,
+      });
     }
-  };
+  }, []);
 
   //конввертування даних
   //в raw приходить обєкт сирих даних
@@ -57,7 +100,7 @@ export default function Container() {
 
     return () => {
       clearInterval(intervalId);
-      alert(2);
+      // alert(2);
     };
   }, []);
 
@@ -69,7 +112,7 @@ export default function Container() {
 
   return (
     <Grid>
-      <div
+      {/* <div
         style={{
           position: "absolute",
           backgroundColor: "pink",
@@ -82,7 +125,7 @@ export default function Container() {
           width: 40,
           height: 40,
         }}
-      ></div>
+      ></div> */}
       <Box>
         <Grid>
           <Title>Home</Title>
@@ -98,7 +141,7 @@ export default function Container() {
         </Grid>
       </Box>
 
-      {status === LOAD_STATUS.PROGRESS && (
+      {state.status === REQUEST_ACTION_TYPE.PROGRESS && (
         <Fragment>
           <Box>
             <Skeleton />
@@ -109,18 +152,26 @@ export default function Container() {
         </Fragment>
       )}
 
-      {status === LOAD_STATUS.ERROR && (
-        <Alert status={status} message={message} />
+      {state.status === REQUEST_ACTION_TYPE.ERROR && (
+        <Alert status={state.status} message={state.message} />
       )}
 
-      {status === LOAD_STATUS.SUCCESS && (
+      {state.status === REQUEST_ACTION_TYPE.SUCCESS && (
         <Fragment>
-          {data.isEmpty ? (
+          {state.data.isEmpty ? (
             <Alert message="Список постів пустий" />
           ) : (
-            data.list.map((item) => (
+            state.data.list.map((item) => (
               <Fragment key={item.id}>
-                <PostItem {...item} />
+                <Suspense
+                  fallback={
+                    <Box>
+                      <Skeleton />
+                    </Box>
+                  }
+                >
+                  <PostItem {...item} />
+                </Suspense>
               </Fragment>
             ))
           )}

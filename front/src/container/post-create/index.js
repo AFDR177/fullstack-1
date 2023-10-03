@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useReducer, memo, useCallback } from "react";
 
 import "./index.css";
 
@@ -7,50 +7,80 @@ import Grid from "../../component/grid";
 
 import { Alert, Loader, LOAD_STATUS } from "../../component/load";
 
-export default function Container({
-  onCreate,
-  placeholder,
-  button,
-  id = null,
-}) {
-  const [status, setStatus] = useState(null);
-  const [message, setMessage] = useState("");
+import {
+  REQUEST_ACTION_TYPE,
+  requestInitialState,
+  requestReducer,
+} from "../../util/request";
 
-  const hundleSubmit = (value) => {
-    return sendData({ value });
-  };
-  const sendData = async (dataToSend) => {
-    setStatus(LOAD_STATUS.PROGRESS); //у нас починається завантаження запита на сервер
+function Container({ onCreate, placeholder, button, id = null }) {
+  const [state, dispatch] = useReducer(requestReducer, requestInitialState);
 
-    try {
-      const res = await fetch("http://localhost:4000/post-create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: convertData(dataToSend),
-      });
+  // було до уроку про useReducer
+  // const [status, setStatus] = useState(null);
+  // const [message, setMessage] = useState("");
+  const convertData = useCallback(
+    ({ value }) =>
+      JSON.stringify({
+        text: value, // value - це текст який вводиться в поле
+        username: "user",
+        postId: id,
+      }),
+    [id]
+  );
 
-      const data = await res.json();
+  const sendData = useCallback(
+    async (dataToSend) => {
+      dispatch({ type: REQUEST_ACTION_TYPE.PROGRESS });
+      // було до уроку про useReducer
+      // setStatus(LOAD_STATUS.PROGRESS); //у нас починається завантаження запита на сервер
 
-      if (res.ok) {
-        setStatus(null);
+      try {
+        const res = await fetch("http://localhost:4000/post-create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: convertData(dataToSend),
+        });
 
-        if (onCreate) onCreate();
-      } else {
-        setMessage(data.message);
-        setStatus(LOAD_STATUS.ERROR);
+        const data = await res.json();
+
+        if (res.ok) {
+          // було до уроку про useReducer
+          // setStatus(null);
+
+          //стало після уроку про useReducer
+          dispatch({ type: REQUEST_ACTION_TYPE.RESET });
+
+          if (onCreate) onCreate();
+        } else {
+          // було до уроку про useReducer
+
+          // setMessage(data.message);
+          // setStatus(LOAD_STATUS.ERROR);
+          //стало після уроку про useReducer
+
+          dispatch({ type: REQUEST_ACTION_TYPE.ERROR, message: data.message });
+        }
+      } catch (err) {
+        // було до уроку про useReducer
+        // setMessage(err.message);
+        // setStatus(LOAD_STATUS.ERROR);
+
+        //стало після уроку про useReducer
+        dispatch({ type: REQUEST_ACTION_TYPE.ERROR, message: err.message });
       }
-    } catch (err) {
-      setMessage(err.message);
-      setStatus(LOAD_STATUS.ERROR);
-    }
-  };
+    },
+    [convertData, onCreate]
+  );
 
-  const convertData = ({ value }) =>
-    JSON.stringify({
-      text: value, // value - це текст який вводиться в поле
-      username: "user",
-      postId: id,
-    });
+  const hundleSubmit = useCallback(
+    (value) => {
+      return sendData({ value });
+    },
+    [sendData]
+  );
+
+  console.log("render");
 
   return (
     <Grid>
@@ -59,10 +89,16 @@ export default function Container({
         button={button}
         onSubmit={hundleSubmit}
       />
-      {status === LOAD_STATUS.ERROR && (
-        <Alert status={status} message={message} />
+      {state.status === LOAD_STATUS.ERROR && (
+        <Alert status={state.status} message={state.message} />
       )}
-      {status === LOAD_STATUS.PROGRESS && <Loader />}
+      {state.status === LOAD_STATUS.PROGRESS && <Loader />}
     </Grid>
   );
 }
+
+export default memo(Container, (prev, next) => {
+  // console.log(prev, next);
+
+  return true;
+});

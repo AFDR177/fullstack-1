@@ -1,4 +1,4 @@
-import { useState, Fragment, useEffect } from "react";
+import { useState, Fragment, useEffect, useReducer, useCallback } from "react";
 import Box from "../../component/box";
 import Grid from "../../component/grid";
 import PostCreate from "../post-create";
@@ -7,34 +7,77 @@ import { getDate } from "../../util/getdate";
 
 import PostContent from "../../component/post-content";
 
+import {
+  REQUEST_ACTION_TYPE,
+  requestInitialState,
+  requestReducer,
+} from "../../util/request";
+
 // import "./index.css";
 
 export default function Container({ id, username, text, date }) {
-  const [data, setData] = useState({ id, username, text, date, reply: null });
-  const [status, setStatus] = useState(null);
-  const [message, setMessage] = useState("");
+  const [state, dispatch] = useReducer(
+    requestReducer,
+    requestInitialState,
+    //стало після уроку про useReducer
+    (state) => ({ ...state, data: { id, username, text, date, reply: null } })
+  );
+
+  // було до уроку про useReducer
+  // const [data, setData] = useState({ id, username, text, date, reply: null });
+  // const [status, setStatus] = useState(null);
+  // const [message, setMessage] = useState("");
 
   // getData - функція для отримання даних
-  const getData = async () => {
-    setStatus(LOAD_STATUS.PROGRESS);
+  const getData = useCallback(async () => {
+    // було до уроку про useReducer
+    // setStatus(LOAD_STATUS.PROGRESS);
+
+    //стало після уроку про useReducer
+    dispatch({ type: REQUEST_ACTION_TYPE.PROGRESS });
 
     try {
-      const res = await fetch(`http://localhost:4000/post-item?id=${data.id}`);
+      const res = await fetch(
+        `http://localhost:4000/post-item?id=${state.data.id}`
+      );
 
       const resData = await res.json();
 
       if (res.ok) {
-        setData(convertData(resData));
-        setStatus(LOAD_STATUS.SUCCESS);
+        // було до уроку про useReducer
+        // setData(convertData(data));
+        // setStatus(LOAD_STATUS.SUCCESS);
+
+        //стало після уроку про useReducer
+        dispatch({
+          type: REQUEST_ACTION_TYPE.SUCCESS,
+          payload: convertData(resData),
+        });
       } else {
-        setMessage(resData.message);
-        setStatus(LOAD_STATUS.ERROR);
+        // було до уроку про useReducer
+        // setMessage(data.message);
+        // setStatus(LOAD_STATUS.ERROR);
+
+        //стало після уроку про useReducer
+        dispatch({
+          type: REQUEST_ACTION_TYPE.ERROR,
+          payload: resData.message,
+        });
       }
     } catch (err) {
-      setMessage(err.message);
-      setStatus(LOAD_STATUS.ERROR);
+      // було до уроку про useReducer
+
+      // setMessage(err.message);
+      // setStatus(LOAD_STATUS.ERROR);
+
+      //стало після уроку про useReducer
+
+      dispatch({
+        type: REQUEST_ACTION_TYPE.ERROR,
+        payload: err.message,
+      });
     }
-  };
+  }, [state.data.id]);
 
   const convertData = ({ post }) => ({
     id: post.id,
@@ -68,9 +111,9 @@ export default function Container({ id, username, text, date }) {
     <Box style={{ padding: "0" }}>
       <div style={{ padding: "20px", cursor: "pointer" }} onClick={handleOpen}>
         <PostContent
-          username={data.username}
-          data={data.date}
-          text={data.text}
+          username={state.data.username}
+          data={state.data.date}
+          text={state.data.text}
         />
       </div>
 
@@ -82,10 +125,10 @@ export default function Container({ id, username, text, date }) {
                 onCreate={getData}
                 placeholder="Post your reply!"
                 button="Reply"
-                id={data.id}
+                id={state.data.id}
               />
             </Box>
-            {status === LOAD_STATUS.PROGRESS && (
+            {state.status === LOAD_STATUS.PROGRESS && (
               <Fragment>
                 <Box>
                   <Skeleton />
@@ -96,13 +139,13 @@ export default function Container({ id, username, text, date }) {
               </Fragment>
             )}
 
-            {status === LOAD_STATUS.ERROR && (
-              <Alert status={status} message={message} />
+            {state.status === LOAD_STATUS.ERROR && (
+              <Alert status={state.status} message={state.message} />
             )}
 
-            {status === LOAD_STATUS.SUCCESS &&
-              data.isEmpty === false &&
-              data.reply.map((item) => (
+            {state.status === LOAD_STATUS.SUCCESS &&
+              state.data.isEmpty === false &&
+              state.data.reply.map((item) => (
                 <Fragment key={item.id}>
                   <PostContent {...item} />
                 </Fragment>

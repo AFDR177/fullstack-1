@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, memo, useContext } from "react";
 
 import "./index.css";
+import { ThemeContext } from "../../App-context";
+
 // placeholder
 // тут у нас є отримання пропсів placeholder, button, onSubmit
-export default function Component({ placeholder, button, onSubmit }) {
+function Component({ placeholder, button, onSubmit }) {
   const [value, setValue] = useState(""); //відповідає за значення і нашому полі
 
   const handleChange = (e) => setValue(e.target.value); //для того щоб задавати значення нашого поля (textarea)
@@ -23,6 +25,10 @@ export default function Component({ placeholder, button, onSubmit }) {
 
   const isDisabled = value.length === 0; //генерується в моменті, для того щоб показати чи кнопка активна чи ні
 
+  const theme = useContext(ThemeContext);
+
+  console.log(theme);
+
   return (
     <div className="field-form">
       <textarea
@@ -35,10 +41,27 @@ export default function Component({ placeholder, button, onSubmit }) {
       <button
         disabled={isDisabled}
         onClick={handleSubmit}
-        className="field-form__button"
+        className={`field-form__button `}
       >
         {button}
+      </button>
+      <button
+        //вариант компактнее
+        onClick={theme.toggle}
+        // вариант более сложнее
+        // onClick={() =>
+        //   theme.setTheme(
+        //     theme.currentTheme === theme.THEME_TYPE.DARK
+        //       ? theme.THEME_TYPE.LIGHT
+        //       : theme.THEME_TYPE.DARK
+        //   )
+        // }
+        className={`field-form__button field-form__button--${theme.value}`}
+      >
+        Change theme
       </button>
     </div>
   );
 }
+
+export default memo(Component);
